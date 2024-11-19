@@ -20,8 +20,7 @@
 #define I2C_A    *(volatile uint32_t *)(I2C_BASE + 0x0C)  // DLEN= Control Regester
 #define I2C_FIFO *(volatile uint32_t *)(I2C_BASE + 0x10)  // FIFO= Control Regester
 
-enum
-{
+enum {
 
   GPPUD = (GPIO_BASE + 0x94),
   GPPUDCLK0 = (GPIO_BASE + 0x98),
