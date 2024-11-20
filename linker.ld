@@ -2,6 +2,8 @@ ENTRY(_start)
  
 SECTIONS
 {
+  /* this is all copied from https://jsandler18.github.io/tutorial/boot.html */
+
     /* Starts at LOADER_ADDR. */
     . = 0x8000;
     __start = .;
