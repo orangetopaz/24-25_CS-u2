@@ -11,16 +11,18 @@
 #define GPFSEL5        0x14
 #define GPFSET0        0x1c
 #define GPFCLR0        0x28
+#define GPFSET1        0x20
+#define GPFCLR1        0x2c
 #define GPIOVAL        0x200000
 
 #define I2C_BASE 0x3F804000  // Adjust based on Pi version
-#define I2C_C    *(volatile uint32_t *)(I2C_BASE + 0x00)  // all different regesters for reading and writing different things. C= Control Regester
+#define I2C_C    *(volatile uint32_t *)(I2C_BASE + 0x00)  // all different regesters for reading and writing different things.
 #define I2C_S    *(volatile uint32_t *)(I2C_BASE + 0x04)  // C= Control Regester
 #define I2C_DLEN *(volatile uint32_t *)(I2C_BASE + 0x08)  // S= Status Regester
 #define I2C_A    *(volatile uint32_t *)(I2C_BASE + 0x0C)  // DLEN= Control Regester
 #define I2C_FIFO *(volatile uint32_t *)(I2C_BASE + 0x10)  // FIFO= Control Regester
 
-enum {
+enum {  // Probobly not going to use this as I can't find a ttc to usb, but good just in case
 
   GPPUD = (GPIO_BASE + 0x94),
   GPPUDCLK0 = (GPIO_BASE + 0x98),
@@ -48,6 +50,40 @@ enum {
   UART0_TDR    = (UART0_BASE + 0x8C),
 };
 
+void pinFunc(unsigned int pinN, uint32_t funcSet){
+  // function to bits:
+    // setToOutput: 0b000
+    // setToIutput: 0b001
+    // setToAltFuc0: 0b100
+    // setToAltFuc1: 0b101
+    // setToAltFuc2: 0b110
+    // setToAltFuc3: 0b111
+    // setToAltFuc4: 0b011
+    // setToAltFuc5: 0b010
+  // pin function group regesters (each group of 3 of the 30-some bits of the regester corrispond to the function set for each pin)
+    // pins 0-9: GPFSEL0
+    // pins 10-19: GPFSEL1
+    // pins 20-29: GPFSEL2
+    // pins 30-39: GPFSEL3
+    // pins 40-49: GPFSEL4
+    // pins 50-53: GPFSEL5
+
+  uint32_t *GPFSEL = (pinN / 10)*4;  // intager division
+
+
+}
+
+// set/clear regesters for different pins
+  // pins 0-31: CLR0/SET0
+  // pins 32-53: CLR1/SET1
+void pinOn(unsigned int pinN){
+
+}
+void pinOff(unsigned int pinN){
+  
+}
+
 int kernel_main(){
+
   return 0;
 }
