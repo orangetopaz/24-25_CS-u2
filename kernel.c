@@ -21,6 +21,7 @@
 #define I2C_DLEN *(volatile uint32_t *)(I2C_BASE + 0x08)  // S= Status Regester
 #define I2C_A    *(volatile uint32_t *)(I2C_BASE + 0x0C)  // DLEN= Control Regester
 #define I2C_FIFO *(volatile uint32_t *)(I2C_BASE + 0x10)  // FIFO= Control Regester
+volatile uint32_t *gpio_base = (volatile uint32_t *)GPIO_BASE;
 
 enum {  // Probobly not going to use this as I can't find a ttc to usb, but good just in case
 
@@ -67,23 +68,36 @@ void pinFunc(unsigned int pinN, uint32_t funcSet){
     // pins 30-39: GPFSEL3
     // pins 40-49: GPFSEL4
     // pins 50-53: GPFSEL5
-
-  uint32_t *GPFSEL = (pinN / 10)*4;  // intager division
-
+  unsigned int bitPos = 3*(pinN%10);
+  volatile uint32_t *GPFSEL = *gpio_base + (uint32_t *)((pinN / 10)*4);  // intager division
+  // declare a pointer with a * before the name at any point, refrence the target of the pointer and not just the pos by including the defferance operator, which is conincedentaly also an astrix before a pointer var
+  *GPFSEL &= ~(0b111 << bitPos);  // clears the position of the funcset area, by putting ...000000011100000000... at the pos, then inverting to only and (clear) the necessary 3 bits, and set everything else to 1, so that it preserves the original setting when anded.
+  *GPFSEL |= (funcSet << bitPos);  // gets the full 32 bit func like ...00000000"001"000000... then oring it to make sure not to clear anytning else by setting it to 0
 
 }
 
 // set/clear regesters for different pins
   // pins 0-31: CLR0/SET0
   // pins 32-53: CLR1/SET1
-void pinOn(unsigned int pinN){
+void pinOn(unsigned int pinN){  // 1 leftshifted by the pin number into the regester
+  if (pinN <= 31){
+    
+  }
+  else if (pinN >= 32){
 
+  }
 }
 void pinOff(unsigned int pinN){
-  
+  if (pinN <= 31){
+    
+  }
+  else if (pinN >= 32){
+
+  }
 }
 
 int kernel_main(){
-
+  volatile uint32_t *gpio_base = (volatile uint32_t *)GPIO_BASE;  // turn gpio base into an address (pointer) to be writen to with a new versoin of the variable that is now lowercase
+  pinFunc(21, 0b000);
   return 0;
 }
