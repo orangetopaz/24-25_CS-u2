@@ -31,6 +31,7 @@ _start:
   ldr r3, =kernel_main  // gets address of kernel main function from c. the = means address, kinda like & in c funciton param declaration
   blx r3  // branches to address in r3 (kernal_main script)
 
+  b halt  // not neccessary as it would go there anyways, but helps in this case to make absolutly sure that no undefined actions happen
 // this is what the unused cores branch to, and what core 0 branches to once kernel_main returns
 halt:  
   wfe  // do nothing at low power mode

@@ -2,18 +2,6 @@
 #include <stdint.h>
 
 // The GPIO registers base address.
-#define GPIO_BASE      0x3f200000  // for raspi2 & 3, 0x20200000 for raspi1
-#define GPFSEL0        0x00
-#define GPFSEL1        0x04
-#define GPFSEL2        0x08
-#define GPFSEL3        0x0c
-#define GPFSEL4        0x10
-#define GPFSEL5        0x14
-#define GPFSET0        0x1c
-#define GPFCLR0        0x28
-#define GPFSET1        0x20
-#define GPFCLR1        0x2c
-#define GPIOVAL        0x200000
 
 #define I2C_BASE 0x3F804000  // Adjust based on Pi version
 #define I2C_C    *(volatile uint32_t *)(I2C_BASE + 0x00)  // all different regesters for reading and writing different things.
@@ -21,9 +9,8 @@
 #define I2C_DLEN *(volatile uint32_t *)(I2C_BASE + 0x08)  // S= Status Regester
 #define I2C_A    *(volatile uint32_t *)(I2C_BASE + 0x0C)  // DLEN= Control Regester
 #define I2C_FIFO *(volatile uint32_t *)(I2C_BASE + 0x10)  // FIFO= Control Regester
-volatile uint32_t *gpio_base = (volatile uint32_t *)GPIO_BASE;
 
-enum {  // Probobly not going to use this as I can't find a ttc to usb, but good just in case
+/* enum {  // Probobly not going to use this as I can't find a ttc to usb, but good just in case
 
   GPPUD = (GPIO_BASE + 0x94),
   GPPUDCLK0 = (GPIO_BASE + 0x98),
@@ -49,7 +36,25 @@ enum {  // Probobly not going to use this as I can't find a ttc to usb, but good
   UART0_ITIP   = (UART0_BASE + 0x84),
   UART0_ITOP   = (UART0_BASE + 0x88),
   UART0_TDR    = (UART0_BASE + 0x8C),
-};
+}; */
+
+#define GPIO_BASE      0x3f200000  // for raspi2 & 3, 0x20200000 for raspi1
+volatile uint32_t *gpio_base = (volatile uint32_t *)GPIO_BASE;  // turn gpio base into an address (pointer) to be writen to with a new versoin of the variable that is now lowercase
+#define GPFSEL0        0x00
+#define GPFSEL1        0x04
+#define GPFSEL2        0x08
+#define GPFSEL3        0x0c
+#define GPFSEL4        0x10
+#define GPFSEL5        0x14
+#define GPFSET0        0x1c
+volatile uint32_t *gpfset0 = (volatile uint32_t *)(GPIO_BASE + GPFSET0);
+#define GPFCLR0        0x28
+volatile uint32_t *gpfclr0 = (volatile uint32_t *)(GPIO_BASE + GPFCLR0);
+#define GPFSET1        0x20
+volatile uint32_t *gpfset1 = (volatile uint32_t *)(GPIO_BASE + GPFSET1);
+#define GPFCLR1        0x2c
+volatile uint32_t *gpfclr1 = (volatile uint32_t *)(GPIO_BASE + GPFCLR1);
+#define GPIOVAL        0x200000
 
 void pinFunc(unsigned int pinN, uint32_t funcSet){
   // function to bits:
@@ -69,10 +74,10 @@ void pinFunc(unsigned int pinN, uint32_t funcSet){
     // pins 40-49: GPFSEL4
     // pins 50-53: GPFSEL5
   unsigned int bitPos = 3*(pinN%10);
-  volatile uint32_t *GPFSEL = *gpio_base + (uint32_t *)((pinN / 10)*4);  // intager division
+  volatile uint32_t *gpfsel = gpio_base + (pinN / 10)*4;  // intager division
   // declare a pointer with a * before the name at any point, refrence the target of the pointer and not just the pos by including the defferance operator, which is conincedentaly also an astrix before a pointer var
-  *GPFSEL &= ~(0b111 << bitPos);  // clears the position of the funcset area, by putting ...000000011100000000... at the pos, then inverting to only and (clear) the necessary 3 bits, and set everything else to 1, so that it preserves the original setting when anded.
-  *GPFSEL |= (funcSet << bitPos);  // gets the full 32 bit func like ...00000000"001"000000... then oring it to make sure not to clear anytning else by setting it to 0
+  *gpfsel &= ~(0b111 << bitPos);  // clears the position of the funcset area, by putting ...000000011100000000... at the pos, then inverting to only and (clear) the necessary 3 bits, and set everything else to 1, so that it preserves the original setting when anded.
+  *gpfsel |= (funcSet << bitPos);  // gets the full 32 bit func like ...00000000"001"000000... then oring it to make sure not to clear anytning else by setting it to 0
 
 }
 
@@ -81,23 +86,33 @@ void pinFunc(unsigned int pinN, uint32_t funcSet){
   // pins 32-53: CLR1/SET1
 void pinOn(unsigned int pinN){  // 1 leftshifted by the pin number into the regester
   if (pinN <= 31){
-    
+    *gpfset0 = (1 << pinN);
   }
   else if (pinN >= 32){
-
+    *gpfset1 = (1 << (pinN-32));
   }
 }
 void pinOff(unsigned int pinN){
   if (pinN <= 31){
-    
+    *gpfclr0 = (1 << pinN);
   }
   else if (pinN >= 32){
+    *gpfclr1 = (1 << (pinN-32));
+  }
+}
 
+void OSDelay(int reps){
+  while (reps--) {
+    // empty loop to create delay, compiler might optomize but I don't trust macos that much
   }
 }
 
 int kernel_main(){
-  volatile uint32_t *gpio_base = (volatile uint32_t *)GPIO_BASE;  // turn gpio base into an address (pointer) to be writen to with a new versoin of the variable that is now lowercase
   pinFunc(21, 0b000);
-  return 0;
+  pinOn(21);  // should turn the rgb led on the bread board blue
+  pinOn(47);  // should turn on the act led
+  OSDelay(1000);
+  pinOff(21);  // should turn the rgb led off
+  pinOff(47);  // should turn off the act led
+  return 0;  // branches back to the halt function in the boot.S, don't include if boot.S doen't have halt, do a while(1) loop instead.
 }
