@@ -129,14 +129,70 @@ bit 7 - backlight control (BL) (if appliccable). usualy 1 for backlight on, 0 fo
 */
 unsigned short backlight = 1;  // bool backlight = true;
 void LCDSendCmd(uint8_t cmd){  
-  uint8_t settings = 0b00000000;  // & 0b[BL]0[RS = 0][R/W = 0]0000, *sends* a *command*
-  settings |= (backlight << 7);  //0b[backlight]0000000
-  
+  uint8_t highNybble = cmd >> 4;  // Extract MSB
+  uint8_t lowNybble = cmd & 0x0F;  // Extract LSB
+  uint8_t settings = 0b00000000 | (backlight << 7); // & 0b[BL][E][RS = 1][R/W = 0]0000, *sends* a *command*
+  // send first nibbyl
+  I2CByteSend(settings | highNybble | (1 << 6));  // send it by 1ing Enable bit
+  I2CByteSend(settings | highNybble | (0 << 6));  // latch it by 0ing Enable bit
+  // send second nibbyl
+  I2CByteSend(settings | lowNybble | (1 << 6));
+  I2CByteSend(settings | lowNybble | (0 << 6));
 }
+
 void LCDSendChar(char ch){  
-  
+  uint8_t highNybble = ch >> 4;  // Extract MSB
+  uint8_t lowNybble = ch & 0x0F;  // Extract LSB
+  uint8_t settings = 0b00010000 | (backlight << 7); // & 0b[BL][E][RS = 0][R/W = 0]0000, *sends* a *command*  //0b[backlight]0000000
+  // send first nibbyl
+  I2CByteSend(settings | highNybble | (1 << 6));
+  I2CByteSend(settings | highNybble | (0 << 6));
+  // send second nibbyl
+  I2CByteSend(settings | lowNybble | (1 << 6));
+  I2CByteSend(settings | lowNybble | (0 << 6));
 }
 
 void kernel_main() {
+  // Initialize I2C for LCD
   I2CInitalize();
+
+  // Set GPIO pins 16, 20, and 21 to output
+  pinFunc(16, 0b001);
+  pinFunc(20, 0b001);
+  pinFunc(21, 0b001);
+
+  // Test GPIO by blinking LEDs
+  for (int i = 0; i < 5; i++) {
+    pinOn(16);  // Turn on red LED
+    OSDelay(500000);
+    pinOff(16); // Turn off red LED
+    pinOn(20);  // Turn on green LED
+    OSDelay(500000);
+    pinOff(20); // Turn off green LED
+    pinOn(21);  // Turn on blue LED
+    OSDelay(500000);
+    pinOff(21); // Turn off blue LED
+  }
+
+  // Test LCD by sending initialization commands
+  LCDSendCmd(0x30); // Wake up LCD (send multiple times if needed)
+  OSDelay(50000);   // Small delay
+  LCDSendCmd(0x28); // 4-bit mode, 2-line display
+  LCDSendCmd(0x0C); // Display ON, cursor OFF
+  LCDSendCmd(0x01); // Clear display
+  OSDelay(2000);    // Wait for clear to complete
+  LCDSendCmd(0x06); // Auto-increment cursor
+
+  // Send a test message to the LCD
+  const char *message = "Hello, World!";
+  for (size_t i = 0; message[i] != '\0'; i++) {
+    LCDSendChar(message[i]);
+  }
+
+  // Toggle backlight for testing
+  backlight = 0; // Turn backlight off
+  LCDSendCmd(0x0C); // Refresh display with new settings
+  OSDelay(500000);
+  backlight = 1; // Turn backlight on
+  LCDSendCmd(0x0C); // Refresh display with new settings
 }
